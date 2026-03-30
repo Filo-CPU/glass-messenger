@@ -904,11 +904,9 @@ body {
       <div id="input-area">
         <div id="upload-progress" style="display: none;">
           <span>📎 Uploading…</span>
-          <div class="progress-bar-wrap">
-            <div class="progress-bar-fill" id="prog-fill" style="width: 0%;"></div>
-          </div>
+          <div class="progress-bar-wrap"><div class="progress-bar-fill" id="prog-fill"></div></div>
         </div>
-      
+        
         <div id="reply-preview">
           <div class="rp-bar"></div>
           <div class="rp-info">
@@ -917,16 +915,16 @@ body {
           </div>
           <span class="rp-close" onclick="clearReply()">✕</span>
         </div>
-      
+
         <div class="input-row">
           <input type="file" id="file-input" style="display:none" onchange="handleFileSelect(this)" accept="image/*,video/*,.pdf,.doc,.docx,.zip,.txt">
           
           <button id="attach-btn" class="icon-btn" onclick="document.getElementById('file-input').click()" title="Attach file">
             <i class="fas fa-paperclip"></i>
           </button>
-      
+
           <textarea id="msg-input" placeholder="Message…" rows="1" onkeydown="msgKeydown(event)" oninput="autoResize(this)"></textarea>
-      
+
           <button id="send-btn" onclick="sendMessage()">➤</button>
         </div>
       </div>
@@ -1036,10 +1034,10 @@ body {
 // Replace with your deployed Apps Script web app URL:
 const API_URL    = "https://script.google.com/macros/s/AKfycbzBX7aMnFQvEnMRJhJEwwMcV81kvg_f2Q9IOo0P8Y6qW2ibrWXT4o8Z0tA_67oRm7Q/exec";
 // Replace with your bridge server URL (e.g. https://yourserver.com or http://localhost:8000):
-const BRIDGE_URL = "https://geonid-glass-bridge.hf.space/upload";
+const BRIDGE_URL = "https://geonid-glass-bridge.hf.space";
 
 const POLL_INTERVAL = 3000;
-const BRIDGE_ENABLED = false; // Set to true when bridge is running
+const BRIDGE_ENABLED = true; // Set to true when bridge is running
 
 // ── PRESET ACCENT COLORS ──────────────────────────────────────
 const ACCENT_PRESETS = [
