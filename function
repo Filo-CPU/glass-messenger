@@ -764,6 +764,15 @@ body {
 }
 @keyframes spin { to { transform: rotate(360deg); } }
 
+/* Чтобы картинки из Telegram не вылезали за границы чата */
+.chat-img {
+  max-width: 100%;
+  max-height: 300px;
+  display: block;
+  margin-top: 5px;
+  border-radius: 8px;
+  object-fit: contain;
+}
 </style>
 </head>
 <body>
@@ -893,10 +902,13 @@ body {
 
       <!-- Input area -->
       <div id="input-area">
-        <div id="upload-progress">
+        <div id="upload-progress" style="display: none;">
           <span>📎 Uploading…</span>
-          <div class="progress-bar-wrap"><div class="progress-bar-fill" id="prog-fill"></div></div>
+          <div class="progress-bar-wrap">
+            <div class="progress-bar-fill" id="prog-fill" style="width: 0%;"></div>
+          </div>
         </div>
+      
         <div id="reply-preview">
           <div class="rp-bar"></div>
           <div class="rp-info">
@@ -905,15 +917,19 @@ body {
           </div>
           <span class="rp-close" onclick="clearReply()">✕</span>
         </div>
+      
         <div class="input-row">
-          <button id="attach-btn" onclick="document.getElementById('file-input').click()" title="Attach file">📎</button>
-          <input type="file" id="file-input" accept="image/*,video/*,.pdf,.doc,.docx,.zip,.txt" onchange="handleFileSelect(this)"/>
-          <textarea id="msg-input" placeholder="Message…" rows="1"
-            onkeydown="msgKeydown(event)" oninput="autoResize(this)"></textarea>
+          <input type="file" id="file-input" style="display:none" onchange="handleFileSelect(this)" accept="image/*,video/*,.pdf,.doc,.docx,.zip,.txt">
+          
+          <button id="attach-btn" class="icon-btn" onclick="document.getElementById('file-input').click()" title="Attach file">
+            <i class="fas fa-paperclip"></i>
+          </button>
+      
+          <textarea id="msg-input" placeholder="Message…" rows="1" onkeydown="msgKeydown(event)" oninput="autoResize(this)"></textarea>
+      
           <button id="send-btn" onclick="sendMessage()">➤</button>
         </div>
       </div>
-    </div>
 
     <!-- Account panel (shown via nav) -->
     <div id="account-panel">
@@ -1020,7 +1036,7 @@ body {
 // Replace with your deployed Apps Script web app URL:
 const API_URL    = "https://script.google.com/macros/s/AKfycbzBX7aMnFQvEnMRJhJEwwMcV81kvg_f2Q9IOo0P8Y6qW2ibrWXT4o8Z0tA_67oRm7Q/exec";
 // Replace with your bridge server URL (e.g. https://yourserver.com or http://localhost:8000):
-const BRIDGE_URL = "http://localhost:8000";
+const BRIDGE_URL = "https://geonid-glass-bridge.hf.space/upload";
 
 const POLL_INTERVAL = 3000;
 const BRIDGE_ENABLED = false; // Set to true when bridge is running
@@ -1421,6 +1437,7 @@ async function fetchMessages() {
 
 function renderMessages() {
   const area = document.getElementById('messages-area');
+  if (!area) return;
   const wasAtBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 60;
 
   if (!activeMessages.length) {
@@ -1432,9 +1449,9 @@ function renderMessages() {
   let prevDate = '';
   let prevSender = '';
 
-  activeMessages.forEach((msg, idx) => {
-    const mine   = msg.sender === currentUser.username;
-    const date   = formatDate(msg.timestamp);
+  activeMessages.forEach((msg) => {
+    const mine = msg.sender === currentUser.username;
+    const date = formatDate(msg.timestamp);
     const showSep = date !== prevDate;
     prevDate = date;
 
@@ -1446,18 +1463,46 @@ function renderMessages() {
     const showAvatar = !mine && msg.sender !== prevSender;
     prevSender = msg.sender;
 
-    // Reply quote
+    // 1. Логика цитаты (Reply quote) - оставляем твою
     let replyHtml = '';
     if (msg.reply_to_id) {
       const orig = activeMessages.find(m => m.msg_id === msg.reply_to_id);
       if (orig) {
-        const rText = orig.type === 'text' ? escHtml(orig.content).slice(0,80) : '📎 Attachment';
+        const rText = orig.type === 'image' ? '🖼 Image' : (orig.type === 'file' ? '📎 File' : escHtml(orig.content).slice(0, 80));
         replyHtml = `<div class="reply-quote" onclick="scrollToMsg('${orig.msg_id}')">
           <div class="rq-name">${escHtml(orig.sender)}</div>
           <div>${rText}</div>
         </div>`;
       }
     }
+
+    // 2. НОВАЯ ЛОГИКА КОНТЕНТА (Картинка / Файл / Текст)
+    let contentHtml = '';
+    if (msg.type === 'image') {
+      contentHtml = `<div class="msg-content"><img src="${msg.content}" class="chat-img" onclick="window.open('${msg.content}')" style="cursor:pointer; max-width:100%; border-radius:8px;"></div>`;
+    } else if (msg.type === 'file') {
+      contentHtml = `<div class="msg-content file-msg"><a href="${msg.content}" target="_blank" class="download-link">📎 Download File</a></div>`;
+    } else {
+      contentHtml = `<div class="msg-text">${escHtml(msg.content)}</div>`;
+    }
+
+    // 3. Собираем сообщение (верстка как у тебя была)
+    html += `
+      <div class="message ${mine ? 'mine' : 'other'}" id="msg-${msg.msg_id}" 
+           oncontextmenu="showMsgMenu(event, '${msg.msg_id}', '${escHtml(msg.sender)}', \`${msg.content.replace(/`/g, '\\`')}\`)">
+        ${showAvatar ? `<div class="msg-avatar">${msg.sender[0].toUpperCase()}</div>` : ''}
+        <div class="msg-bubble">
+          ${replyHtml}
+          ${contentHtml}
+          <div class="msg-time">${new Date(msg.timestamp).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'})}</div>
+        </div>
+      </div>
+    `;
+  });
+
+  area.innerHTML = html;
+  if (wasAtBottom) area.scrollTop = area.scrollHeight;
+}
 
     // Content
     let contentHtml = '';
@@ -1559,34 +1604,94 @@ function clearReply() {
 }
 
 // ── SEND MESSAGE ──────────────────────────────────────────────
+async function uploadFileToTelegram(file) {
+    const formData = new FormData();
+    formData.append('file', file);
+
+    try {
+        const response = await fetch(`${BRIDGE_URL}/upload`, {
+            method: 'POST',
+            body: formData
+        });
+        const data = await response.json();
+        if (data.ok) {
+            // Возвращаем готовую ссылку для скачивания
+            return `${BRIDGE_URL}/download/${data.file_id}`;
+        }
+    } catch (e) {
+        console.error("Ошибка моста:", e);
+        return null;
+    }
+}
+  
 async function sendMessage(overrideContent, overrideType) {
   const input = document.getElementById('msg-input');
-  const content = overrideContent || input.value.trim();
-  const type    = overrideType    || 'text';
-  if (!content || !activeChatId) return;
+  // Нам понадобится input для файлов. Добавь его в HTML (см. пункт 3 ниже)
+  const fileInput = document.getElementById('file-input'); 
+  
+  let content = overrideContent || input.value.trim();
+  let type = overrideType || 'text';
+  
+  const file = fileInput ? fileInput.files[0] : null;
+
+  // Если нет ни текста, ни файла — выходим
+  if (!content && !file && !overrideContent) return;
 
   const btn = document.getElementById('send-btn');
   btn.disabled = true;
 
-  const res = await apiPost({
-    action:      'sendMessage',
-    username:    currentUser.username,
-    user_token:  currentUser.user_token,
-    chat_id:     activeChatId,
-    content,
-    type,
-    reply_to_id: replyState?.msg_id || ''
-  });
+  try {
+    // ШАГ 1: Если есть файл, загружаем его на Hugging Face
+    if (file && !overrideContent) {
+      showToast('Загрузка файла...');
+      
+      const formData = new FormData();
+      formData.append('file', file);
 
-  btn.disabled = false;
+      const uploadRes = await fetch(`${BRIDGE_URL}/upload`, {
+        method: 'POST',
+        body: formData
+      });
 
-  if (!res.ok) { showToast('Failed to send: ' + (res.error || '')); return; }
+      const uploadData = await uploadRes.json();
+      
+      if (uploadData.ok) {
+        // Меняем контент на ссылку для скачивания, а тип на 'image' или 'file'
+        content = `${BRIDGE_URL}/download/${uploadData.file_id}`;
+        type = file.type.startsWith('image/') ? 'image' : 'file';
+      } else {
+        throw new Error('Ошибка загрузки на мост');
+      }
+    }
 
-  input.value = '';
-  autoResize(input);
-  clearReply();
-  await fetchMessages();
-  await loadChats(); // refresh sidebar preview
+    // ШАГ 2: Отправляем данные в твою основную базу (Replit)
+    const res = await apiPost({
+      action:      'sendMessage',
+      username:    currentUser.username,
+      user_token:  currentUser.user_token,
+      chat_id:     activeChatId,
+      content,
+      type,
+      reply_to_id: replyState?.msg_id || ''
+    });
+
+    if (!res.ok) { 
+      showToast('Failed to send: ' + (res.error || '')); 
+    } else {
+      // Очистка после успешной отправки
+      input.value = '';
+      if (fileInput) fileInput.value = ''; // Сбрасываем выбранный файл
+      autoResize(input);
+      clearReply();
+      await fetchMessages();
+      await loadChats();
+    }
+
+  } catch (err) {
+    showToast('Ошибка: ' + err.message);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 function msgKeydown(e) {
