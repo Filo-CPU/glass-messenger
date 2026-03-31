@@ -1030,10 +1030,13 @@ body {
 
 <!-- ══════════════════════════ SCRIPT ═════════════════════════ -->
 <script>
-function qs(sel, ctx) {
-  return (ctx || document).querySelector(sel);
+function switchAuthTab(tab) {
+  const isLogin = tab === 'login';
+
+  document.getElementById('auth-title').textContent = isLogin ? 'Login' : 'Sign Up';
+  document.getElementById('auth-btn').textContent = isLogin ? 'Login' : 'Sign Up';
 }
-  
+
 'use strict';
 
 // ── CONFIG ────────────────────────────────────────────────────
