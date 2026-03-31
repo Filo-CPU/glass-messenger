@@ -1442,7 +1442,7 @@ async function fetchMessages() {
   if (res.pinned_msg_id) updatePinnedBanner(res.pinned_msg_id);
 }
 
-function renderMessages() {
+function renderMessages() { 
   const area = document.getElementById('messages-area');
   if (!area) return;
   const wasAtBottom = area.scrollHeight - area.scrollTop - area.clientHeight < 60;
@@ -1510,55 +1510,7 @@ function renderMessages() {
   area.innerHTML = html;
   if (wasAtBottom) area.scrollTop = area.scrollHeight;
 }
-
-    // Content
-    let contentHtml = '';
-    if (msg.type === 'image') {
-      contentHtml = `<img class="msg-image" src="${escHtml(msg.content)}" alt="image" onclick="openImgViewer('${escHtml(msg.content)}'); event.stopPropagation();"/>`;
-    } else if (msg.type === 'video') {
-      contentHtml = `<video style="max-width:100%;border-radius:14px;max-height:280px" controls src="${escHtml(msg.content)}"></video>`;
-    } else if (msg.type === 'file') {
-      const fname = msg.content.split('/').pop().split('?')[0] || 'File';
-      contentHtml = `<div class="msg-file">
-        <span class="msg-file-icon">📎</span>
-        <div class="msg-file-info">
-          <div class="file-name">${escHtml(fname)}</div>
-          <a class="file-dl" href="${escHtml(msg.content)}" target="_blank" rel="noopener">Download</a>
-        </div>
-      </div>`;
-    } else {
-      contentHtml = `<div class="msg-text">${escHtml(msg.content).replace(/\n/g,'<br/>')}</div>`;
-    }
-
-    // Sender name for group
-    const senderNameHtml = !mine ? `<div class="msg-sender-name">${escHtml(msg.sender)}</div>` : '';
-
-    // Avatar
-    const senderUser = chats.flatMap(c => []).find(()=>false); // simplified
-    const avatarHtml = (!mine && showAvatar)
-      ? `<div class="msg-sender-avatar">${getInitials(msg.sender)}</div>`
-      : (!mine ? `<div style="width:28px;flex-shrink:0"></div>` : '');
-
-    html += `
-      <div class="msg-row${mine?' mine':''}" id="msg-${msg.msg_id}" onclick="setReply('${msg.msg_id}','${escHtml(msg.sender)}','${escHtml((msg.content||'').replace(/'/g,"\\'")).slice(0,60)}')">
-        ${avatarHtml}
-        <div class="msg-bubble">
-          ${senderNameHtml}
-          ${replyHtml}
-          ${contentHtml}
-          <div class="msg-footer">
-            <span class="msg-time">${formatTime(msg.timestamp)}</span>
-          </div>
-        </div>
-      </div>`;
-  });
-
-  area.innerHTML = html;
-
-  if (wasAtBottom || !lastMsgTs) {
-    setTimeout(() => area.scrollTop = area.scrollHeight, 50);
-  }
-}
+    
 
 function scrollToMsg(msgId) {
   const el = document.getElementById('msg-' + msgId);
